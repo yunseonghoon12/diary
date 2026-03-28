@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { APP_FILTER } from '@nestjs/core';
+import { AllExceptionsLoggerFilter } from './all-exceptions-logger.filter';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { FirebaseAuthModule } from './auth/firebase-auth.module';
@@ -18,6 +20,9 @@ import { PrismaModule } from './prisma/prisma.module';
     DiaryModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [
+    AppService,
+    { provide: APP_FILTER, useClass: AllExceptionsLoggerFilter },
+  ],
 })
 export class AppModule {}

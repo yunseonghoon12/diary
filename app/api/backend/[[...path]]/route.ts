@@ -118,6 +118,20 @@ async function forward(req: NextRequest, segments: string[] | undefined) {
 
   try {
     const res = await fetch(target, init);
+    if (!res.ok) {
+      let bodyPreview = "";
+      try {
+        bodyPreview = (await res.clone().text()).slice(0, 500);
+      } catch {
+        /* ignore */
+      }
+      console.warn("[api/backend proxy] upstream error", {
+        method: req.method,
+        status: res.status,
+        target,
+        bodyPreview: bodyPreview || "(empty)",
+      });
+    }
     return new Response(res.body, {
       status: res.status,
       statusText: res.statusText,
