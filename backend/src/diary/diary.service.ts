@@ -41,7 +41,11 @@ export class DiaryService {
       throw new BadRequestException('entryDate is required');
     }
     const entryDate = this.parseEntryDate(dto.entryDate);
-    const title = `그림일기 ${dto.entryDate}`;
+    const custom = dto.title != null ? String(dto.title).trim() : "";
+    const title =
+      custom.length > 0
+        ? custom.slice(0, 120)
+        : `그림일기 ${dto.entryDate}`;
 
     const picture =
       dto.picturePngBase64 != null && dto.picturePngBase64 !== ''
@@ -122,5 +126,20 @@ export class DiaryService {
       throw new NotFoundException('Diary entry not found');
     }
     return entry;
+  }
+
+  async deleteForUser(firebaseUid: string, id: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { firebaseUid },
+    });
+    if (!user) {
+      throw new NotFoundException('Diary entry not found');
+    }
+    const r = await this.prisma.diaryEntry.deleteMany({
+      where: { id, userId: user.id },
+    });
+    if (r.count === 0) {
+      throw new NotFoundException('Diary entry not found');
+    }
   }
 }

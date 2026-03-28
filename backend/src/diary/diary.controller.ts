@@ -1,4 +1,13 @@
-import { Body, Controller, Get, Param, Post } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  Post,
+} from '@nestjs/common';
 import type { CreateDiaryDto } from './dto/create-diary.dto';
 import { DiaryService } from './diary.service';
 
@@ -22,5 +31,11 @@ export class DiaryController {
   @Post()
   submit(@Body() body: CreateDiaryDto) {
     return this.diaryService.create(GUEST_FIREBASE_UID, body);
+  }
+
+  @Delete(':id')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  remove(@Param('id') id: string) {
+    return this.diaryService.deleteForUser(GUEST_FIREBASE_UID, id);
   }
 }

@@ -32,6 +32,9 @@ const PASTEL_SWATCHES = [
   "#b8a9c9",
 ] as const;
 
+/** undo용 getImageData·PNG보내기 등 읽기가 잦을 때 Chrome Canvas2D 경고 완화 */
+const CTX_2D_READ: CanvasRenderingContext2DSettings = { willReadFrequently: true };
+
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
@@ -77,7 +80,7 @@ async function exportCompositePngBase64(
   const out = document.createElement("canvas");
   out.width = Math.floor(w * dpr);
   out.height = Math.floor(h * dpr);
-  const ctx = out.getContext("2d");
+  const ctx = out.getContext("2d", CTX_2D_READ);
   if (!ctx) return null;
   ctx.scale(dpr, dpr);
   ctx.fillStyle = "#fffef8";
@@ -247,6 +250,7 @@ export function PictureDiaryPad({
   const [wakeTime, setWakeTime] = useState("");
   const [artTab, setArtTab] = useState<ArtTab>("draw");
   const [bodyText, setBodyText] = useState("");
+  const [diaryTitle, setDiaryTitle] = useState("");
   const [strokeColor, setStrokeColor] = useState<string>(COLORS[0]);
   const [tool, setTool] = useState<DrawTool>("pen");
   const [photoUrl, setPhotoUrl] = useState<string | null>(null);
@@ -274,7 +278,7 @@ export function PictureDiaryPad({
   const pushUndoSnapshot = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvas.width === 0 || canvas.height === 0) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx) return;
     const data = ctx.getImageData(0, 0, canvas.width, canvas.height);
     undoStack.current.push(data);
@@ -286,7 +290,7 @@ export function PictureDiaryPad({
   const initUndoBaseline = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || canvas.width === 0 || canvas.height === 0) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx) return;
     undoStack.current = [ctx.getImageData(0, 0, canvas.width, canvas.height)];
   }, []);
@@ -298,7 +302,7 @@ export function PictureDiaryPad({
     const dpr = window.devicePixelRatio || 1;
     const w = wrap.clientWidth;
     const h = wrap.clientHeight;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
@@ -319,7 +323,7 @@ export function PictureDiaryPad({
     if (temp) {
       temp.width = canvas.width;
       temp.height = canvas.height;
-      const tx = temp.getContext("2d");
+      const tx = temp.getContext("2d", CTX_2D_READ);
       if (tx) tx.drawImage(canvas, 0, 0);
     }
 
@@ -327,7 +331,7 @@ export function PictureDiaryPad({
     canvas.height = Math.floor(h * dpr);
     canvas.style.width = `${w}px`;
     canvas.style.height = `${h}px`;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx) return;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, w, h);
@@ -455,7 +459,7 @@ export function PictureDiaryPad({
     const p = getPos(e);
     const canvas = canvasRef.current;
     if (!p || !canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx || !last.current) return;
     applyToolStyle(ctx);
     ctx.beginPath();
@@ -471,7 +475,7 @@ export function PictureDiaryPad({
   const undoLastStroke = () => {
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", CTX_2D_READ);
     if (!ctx || undoStack.current.length <= 1) return;
     undoStack.current.pop();
     const prev = undoStack.current[undoStack.current.length - 1];
@@ -514,6 +518,7 @@ export function PictureDiaryPad({
       const res = await submitDiary(
         {
           entryDate: diaryDate,
+          title: diaryTitle.trim() || null,
           weather: weather ?? null,
           wakeTime: wakeTime || null,
           content: bodyText || null,
@@ -606,6 +611,18 @@ export function PictureDiaryPad({
                   </button>
                 );
               })}
+            </div>
+
+            <div className="border-b-2 border-rose-100/90 px-2 py-1.5">
+              <label className="block text-[10px] text-stone-500">제목</label>
+              <input
+                type="text"
+                value={diaryTitle}
+                onChange={(e) => setDiaryTitle(e.target.value)}
+                maxLength={120}
+                placeholder="목록에 보일 제목 (선택)"
+                className="mt-0.5 w-full rounded-lg border border-rose-200 bg-white px-2 py-1 text-sm text-stone-800 placeholder:text-stone-400"
+              />
             </div>
 
             {/* 그림 / 사진 */}

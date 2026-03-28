@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { fetchDiaryList, getDiaryIdToken, type DiaryListItem } from "@/lib/api";
+import { deleteDiary, fetchDiaryList, getDiaryIdToken, type DiaryListItem } from "@/lib/api";
 import { formatDiaryKoreanHeader, formatSubmittedAt } from "@/lib/diary-date";
 import { WEATHER_LABEL } from "@/lib/diary-weather-labels";
 
@@ -68,24 +68,43 @@ export function DiaryListScreen({ className = "", onOpenEntry, onNewDiary }: Dia
         ) : (
           <ul className="space-y-2">
             {items.map((row) => (
-              <li key={row.id}>
+              <li key={row.id} className="flex items-stretch gap-2">
                 <button
                   type="button"
                   onClick={() => onOpenEntry(row.id)}
-                  className="w-full rounded-2xl border-2 border-rose-100/90 bg-white/90 p-3 text-left shadow-sm transition hover:border-rose-200 hover:bg-white"
+                  className="min-w-0 flex-1 rounded-2xl border-2 border-rose-100/90 bg-white/90 p-3 text-left shadow-sm transition hover:border-rose-200 hover:bg-white"
                 >
                   <p className="text-sm font-medium text-stone-900">
                     {formatDiaryKoreanHeader(row.entryDate)}
                   </p>
-                  <p className="mt-0.5 text-[11px] text-stone-500">
-                    제출 {formatSubmittedAt(row.createdAt)}
+                  <p className="mt-0.5 flex flex-wrap items-baseline gap-x-1 gap-y-0.5 text-[11px] text-stone-500">
+                    <span>제출 {formatSubmittedAt(row.createdAt)}</span>
                     {row.weather ? (
                       <span className="text-rose-600">
-                        {" "}
                         · 날씨 {WEATHER_LABEL[row.weather] ?? row.weather}
                       </span>
                     ) : null}
+                    <span className="min-w-0 max-w-full truncate font-medium text-stone-700">
+                      · {row.title}
+                    </span>
                   </p>
+                </button>
+                <button
+                  type="button"
+                  className="shrink-0 self-center rounded-xl border-2 border-rose-200/90 bg-white px-2.5 py-2 text-[10px] font-medium text-rose-700 shadow-sm transition hover:bg-rose-50"
+                  onClick={async (e) => {
+                    e.stopPropagation();
+                    if (!window.confirm("이 일기를 삭제할까요?")) return;
+                    setError(null);
+                    try {
+                      await deleteDiary(row.id, getDiaryIdToken());
+                      await load();
+                    } catch (err) {
+                      setError(err instanceof Error ? err.message : "삭제하지 못했어요");
+                    }
+                  }}
+                >
+                  삭제
                 </button>
               </li>
             ))}

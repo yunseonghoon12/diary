@@ -141,6 +141,8 @@ export async function apiJson<T>(path: string, options: ApiFetchOptions = {}): P
 
 export type SubmitDiaryPayload = {
   entryDate: string;
+  /** 비우면 서버 기본 제목 */
+  title?: string | null;
   weather?: string | null;
   wakeTime?: string | null;
   content?: string | null;
@@ -242,4 +244,20 @@ export async function submitDiary(
     throw new Error(formatHttpErrorBody(res.status, text));
   }
   return res.json() as Promise<SubmitDiaryResponse>;
+}
+
+export async function deleteDiary(id: string, idToken: string | null): Promise<void> {
+  let res: Response;
+  try {
+    res = await apiFetch(`/diaries/${encodeURIComponent(id)}`, {
+      method: "DELETE",
+      idToken,
+    });
+  } catch (e) {
+    throw toClientNetworkError(e, "일기 삭제");
+  }
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(formatHttpErrorBody(res.status, text));
+  }
 }
