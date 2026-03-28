@@ -53,6 +53,17 @@ npm run dev:all
 2. Vercel 사이트에서 일기 제출이 되는지 확인.  
 3. 첫 배포 후 DB는 `render.yaml` 의 `startCommand` 안 `prisma migrate deploy` 로 스키마가 적용됩니다.
 
+### 로컬은 되는데 Vercel만 안 될 때
+
+1. **Vercel → Project → Settings → Environment Variables**
+   - **`BACKEND_URL`** = `https://(Render에 나온 API 호스트)`  
+     - 값에 **따옴표(`"`) 넣지 않기**.  
+     - **Production** 체크가 켜져 있는지 확인 (Preview만 켜 있으면 프로덕션 URL에서 실패).
+   - 저장 후 **Deployments → 최신 배포 → Redeploy**.
+2. **`NEXT_PUBLIC_API_URL`** 은 비우는 것을 권장합니다. 넣었다면 **완전한 https URL**만 (빈 값 금지). 직접 API로 붙이면 Render의 **`CORS_ORIGIN`** 에 Vercel 도메인을 넣어야 합니다.
+3. **Render 무료**는 수 분 미사용 시 잠듦. 첫 요청이 **느리거나 한 번 실패**할 수 있어요. Vercel Hobby는 서버리스 **10초 제한**이 있어, 깨어나는 동안 타임아웃이 나면 **Vercel Pro**이거나, 환경 변수 **`NEXT_PUBLIC_API_URL`** 로 브라우저가 Render에 **직접** 호출하게 하세요 (이때도 `CORS_ORIGIN` 필요).
+4. 브라우저 개발자 도구 **Network**에서 `api/backend/diaries` 응답 본문을 보면, `BACKEND_URL` 누락 시 위에서 넣은 **한국어 안내 JSON**이 올 수 있습니다.
+
 ## GitHub
 
 원격: [https://github.com/yunseonghoon12/diary](https://github.com/yunseonghoon12/diary)

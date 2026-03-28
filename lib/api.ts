@@ -5,7 +5,9 @@
 const defaultBase = "/api/backend";
 
 export function getApiBaseUrl(): string {
-  return process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, "") ?? defaultBase;
+  const raw = process.env.NEXT_PUBLIC_API_URL?.trim();
+  if (!raw) return defaultBase;
+  return raw.replace(/\/$/, "");
 }
 
 export type ApiFetchOptions = RequestInit & {
