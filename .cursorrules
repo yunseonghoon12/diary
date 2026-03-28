@@ -1,0 +1,13 @@
+## Stack
+- Frontend: Next.js App Router, React, TypeScript
+- Backend: NestJS, TypeScript
+- DB: PostgreSQL, Prisma (`backend/prisma` 스키마·마이그레이션)
+- AI: OpenAI API (시크릿은 서버에서만 사용 — Nest 권장)
+- Auth / Storage: Firebase Authentication, Firebase Storage (그림일기 이미지 등)
+
+## Conventions
+- React + Next.js App Router 기준으로 작성
+- TypeScript 사용
+- 코드 간결하게 작성
+- 불필요한 설명 없이 코드 중심으로 작성
+- 컴포넌트는 기능별로 분리
