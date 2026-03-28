@@ -1,0 +1,26 @@
+# Render Blueprint: New → Blueprint → GitHub repo 연결 후 푸시할 때마다 자동 배포
+#
+# DATABASE_URL: Neon(https://neon.tech) 등에서 무료 Postgres 만들고 연결 문자열을
+# Render 대시보드 → diary-api → Environment 에 붙여 넣기 (마이그레이션에 SSL 필요 시 ?sslmode=require)
+#
+# CORS_ORIGIN: Vercel 프론트 URL (예: https://xxx.vercel.app). 쉼표로 여러 개 가능.
+
+services:
+  - type: web
+    name: diary-api
+    runtime: node
+    region: singapore
+    plan: free
+    rootDir: backend
+    buildCommand: npm ci && npx prisma generate && npm run build
+    startCommand: npx prisma migrate deploy && npm run start:prod
+    healthCheckPath: /health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: DATABASE_URL
+        sync: false
+      - key: OPENAI_API_KEY
+        sync: false
+      - key: CORS_ORIGIN
+        sync: false
