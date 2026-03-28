@@ -1,8 +1,9 @@
 # 푸시 시 Next.js를 Vercel 프로덕션에 배포합니다.
-# GitHub → 저장소 → Settings → Secrets and variables → Actions:
+# GitHub → 저장소 → Settings → Secrets and variables → Actions
+#   탭은 반드시 **Secrets** (Variables만 넣으면 secrets.XXX 가 비어 있음)
 #   VERCEL_TOKEN        https://vercel.com/account/tokens
-#   VERCEL_ORG_ID       Vercel 프로젝트 → Settings → General (Team / Personal)
-#   VERCEL_PROJECT_ID   동일 화면의 Project ID
+#   VERCEL_ORG_ID       Vercel 프로젝트 → Settings → General
+#   VERCEL_PROJECT_ID   같은 화면의 Project ID
 #
 # 로컬에서 한 번 `npx vercel link` 후 `.vercel/project.json`의 orgId·projectId를 복사해도 됩니다.
 #
@@ -29,6 +30,24 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
+      - name: Check Vercel repository secrets
+        run: |
+          missing=""
+          [ -z "$VERCEL_TOKEN" ] && missing="$missing VERCEL_TOKEN"
+          [ -z "$VERCEL_ORG_ID" ] && missing="$missing VERCEL_ORG_ID"
+          [ -z "$VERCEL_PROJECT_ID" ] && missing="$missing VERCEL_PROJECT_ID"
+          if [ -n "$missing" ]; then
+            echo "::error::Repository secrets 가 비어 있거나 없습니다:$missing"
+            echo "저장소 → Settings → Secrets and variables → **Actions** → **Secrets** → New repository secret"
+            echo "이름(대소문자 동일): VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID"
+            echo "Variables 탭에만 있으면 Secrets 탭에도 각각 추가해야 합니다."
+            exit 1
+          fi
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
