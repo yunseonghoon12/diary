@@ -1,11 +1,13 @@
 # 푸시 시 Next.js를 Vercel 프로덕션에 배포합니다.
-# GitHub → 저장소 → Settings → Secrets and variables → Actions 에 아래 시크릿을 넣으세요:
-#   VERCEL_TOKEN      https://vercel.com/account/tokens
-#   VERCEL_ORG_ID     Vercel 프로젝트 → Settings → General
-#   VERCEL_PROJECT_ID 동일
+# GitHub → 저장소 → Settings → Secrets and variables → Actions:
+#   VERCEL_TOKEN        https://vercel.com/account/tokens
+#   VERCEL_ORG_ID       Vercel 프로젝트 → Settings → General (Team / Personal)
+#   VERCEL_PROJECT_ID   동일 화면의 Project ID
 #
-# Vercel 대시보드에서 같은 저장소를 "Git 연동"으로 이미 연결했다면 중복 배포되므로,
-# 그 경우 이 워크플로는 비활성화하거나 Vercel 쪽 자동 배포를 끄세요.
+# 로컬에서 한 번 `npx vercel link` 후 `.vercel/project.json`의 orgId·projectId를 복사해도 됩니다.
+#
+# Vercel 대시보드에서 같은 저장소를 Git 연동으로 이미 쓰면 배포가 두 번 갈 수 있으니,
+# 그중 하나는 끄거나 이 워크플로를 비활성화하세요.
 
 name: Deploy frontend (Vercel)
 
@@ -18,16 +20,31 @@ concurrency:
   group: vercel-deploy-${{ github.ref }}
   cancel-in-progress: true
 
+env:
+  VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+  VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
 jobs:
   deploy:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - name: Deploy to Vercel
-        uses: amondnet/vercel-action@v25
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
         with:
-          vercel-token: ${{ secrets.VERCEL_TOKEN }}
-          vercel-org-id: ${{ secrets.VERCEL_ORG_ID }}
-          vercel-project-id: ${{ secrets.VERCEL_PROJECT_ID }}
-          vercel-args: "--prod"
+          node-version: "20"
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel Environment Information
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Build Project Artifacts
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+
+      - name: Deploy Project Artifacts to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
