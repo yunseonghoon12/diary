@@ -4,6 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "dev:backend": "npm run start:dev --prefix backend",
+    "dev:all": "concurrently -n front,api -c cyan,magenta \"npm run dev\" \"npm run start:dev --prefix backend\"",
+    "db:up": "docker compose up -d",
+    "db:down": "docker compose down",
+    "db:setup": "docker compose up -d && npm run db:deploy --prefix backend",
     "build": "next build",
     "start": "next start",
     "lint": "eslint"
@@ -14,6 +19,7 @@
     "react-dom": "19.2.4"
   },
   "devDependencies": {
+    "concurrently": "^9.1.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20",
     "@types/react": "^19",
