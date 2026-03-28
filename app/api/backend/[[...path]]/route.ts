@@ -21,6 +21,13 @@ const SKIP_HEADERS = new Set(
   ].map((s) => s.toLowerCase()),
 );
 
+/** fetch()가 이미 압축을 푼 스트림을 넘기는데 Encoding 헤더가 남으면 브라우저가 net::ERR_CONTENT_DECODING_FAILED */
+const SKIP_RESPONSE_HEADERS = new Set([
+  ...SKIP_HEADERS,
+  "content-encoding",
+  "x-content-encoding",
+]);
+
 function backendOrigin(): string {
   return (process.env.BACKEND_URL ?? "http://127.0.0.1:4000").replace(/\/$/, "");
 }
@@ -92,7 +99,7 @@ function filterRequestHeaders(req: NextRequest): Headers {
 function filterResponseHeaders(src: Headers): Headers {
   const h = new Headers();
   src.forEach((value, key) => {
-    if (SKIP_HEADERS.has(key.toLowerCase())) return;
+    if (SKIP_RESPONSE_HEADERS.has(key.toLowerCase())) return;
     h.set(key, value);
   });
   return h;
