@@ -781,10 +781,10 @@ export function PictureDiaryPad({
             <div className="space-y-2 border-t-2 border-rose-100/90 p-2">
               {submitFeedback ? (
                 <p
-                  className={`rounded-xl px-3 py-2 text-center text-xs ${
+                  className={`rounded-xl px-3 py-2 text-xs ${
                     submitFeedback.includes("제출했")
-                      ? "bg-emerald-50 text-emerald-800"
-                      : "bg-rose-50 text-rose-700"
+                      ? "bg-emerald-50 text-center text-emerald-800"
+                      : "bg-rose-50 text-left break-words whitespace-pre-wrap text-rose-700"
                   }`}
                 >
                   {submitFeedback}

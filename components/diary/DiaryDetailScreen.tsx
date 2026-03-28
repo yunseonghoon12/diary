@@ -53,7 +53,9 @@ export function DiaryDetailScreen({ id, className = "", onBack }: DiaryDetailScr
         </button>
 
         {error ? (
-          <p className="rounded-xl bg-rose-50 px-3 py-2 text-center text-sm text-rose-800">{error}</p>
+          <p className="rounded-xl bg-rose-50 px-3 py-2 text-left text-sm break-words whitespace-pre-wrap text-rose-800">
+            {error}
+          </p>
         ) : null}
 
         {!entry && !error ? (

@@ -47,7 +47,9 @@ export function DiaryListScreen({ className = "", onOpenEntry, onNewDiary }: Dia
         </div>
 
         {error ? (
-          <p className="mb-3 rounded-xl bg-rose-50 px-3 py-2 text-center text-xs text-rose-800">{error}</p>
+          <p className="mb-3 rounded-xl bg-rose-50 px-3 py-2 text-left text-xs break-words whitespace-pre-wrap text-rose-800">
+            {error}
+          </p>
         ) : null}
 
         {items === null ? (

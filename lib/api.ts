@@ -15,6 +15,91 @@ export type ApiFetchOptions = RequestInit & {
   idToken?: string | null;
 };
 
+function isLikelyNetworkFailure(e: unknown): boolean {
+  if (e instanceof TypeError) {
+    const m = String(e.message).toLowerCase();
+    return (
+      m.includes("fetch") ||
+      m.includes("network") ||
+      m.includes("load failed") ||
+      m.includes("failed to load") ||
+      m.includes("networkerror")
+    );
+  }
+  if (e instanceof DOMException) {
+    return e.name === "AbortError" || e.name === "NetworkError";
+  }
+  return false;
+}
+
+/** Nest / 프록시 JSON·HTML 응답을 짧은 사용자용 문장으로 */
+function formatHttpErrorBody(status: number, text: string): string {
+  const label =
+    status === 400
+      ? "요청 형식 오류(400)"
+      : status === 401
+        ? "인증 필요(401)"
+        : status === 403
+          ? "접근 거부(403)"
+          : status === 404
+            ? "API 경로 없음(404)"
+            : status === 413
+              ? "용량 초과(413)"
+              : status === 502
+                ? "백엔드 연결 실패(502)"
+                : status === 503
+                  ? "서비스 일시 불가(503)"
+                  : `HTTP ${status}`;
+
+  const trimmed = text.trim();
+  if (!trimmed) {
+    return `${label}: 응답 본문이 비어 있어요. Nest 로그와 DATABASE_URL·마이그레이션을 확인해 주세요.`;
+  }
+
+  try {
+    const j = JSON.parse(trimmed) as Record<string, unknown>;
+    const chunks: string[] = [];
+    const msg = j.message;
+    if (Array.isArray(msg)) {
+      const s = msg.map(String).filter(Boolean).join(", ");
+      if (s) chunks.push(s);
+    } else if (typeof msg === "string" && msg.trim()) {
+      chunks.push(msg.trim());
+    }
+    if (typeof j.error === "string" && j.error.trim()) {
+      chunks.push(j.error.trim());
+    }
+    if (chunks.length > 0) {
+      return `${label}: ${chunks.join(" — ")}`.slice(0, 600);
+    }
+  } catch {
+    /* not JSON */
+  }
+
+  if (/^<!DOCTYPE|^<html/i.test(trimmed)) {
+    return `${label}: HTML 오류 페이지가 왔어요. BACKEND_URL이 Nest API를 가리키는지(프론트 URL이 아닌지) 확인해 주세요.`;
+  }
+
+  const short = trimmed.length > 400 ? `${trimmed.slice(0, 400)}…` : trimmed;
+  return `${label}: ${short}`;
+}
+
+function toClientNetworkError(e: unknown, action: string): Error {
+  if (e instanceof DOMException && e.name === "AbortError") {
+    return new Error(`${action}: 요청이 중단되었어요.`);
+  }
+  if (isLikelyNetworkFailure(e)) {
+    const raw = e instanceof Error ? e.message : String(e);
+    return new Error(
+      `${action}: 서버까지 네트워크 요청이 실패했어요 (${raw}). 백엔드 가동 여부, 인터넷·방화벽, 배포 시 Vercel의 BACKEND_URL 또는 NEXT_PUBLIC_API_URL(Nest 공개 주소)을 확인해 주세요.`,
+    );
+  }
+  if (e instanceof Error) {
+    return new Error(`${action}: ${e.message}`);
+  }
+  return new Error(`${action}: ${String(e)}`);
+}
+
 /**
  * Nest API 호출용 fetch 래퍼. 인증이 필요하면 `idToken`을 넘기면 `Authorization: Bearer`가 붙습니다.
  */
@@ -97,17 +182,11 @@ export async function fetchDiaryList(idToken: string | null): Promise<DiaryListI
       idToken,
     });
   } catch (e) {
-    const msg =
-      e instanceof TypeError && String(e.message).includes("fetch")
-        ? "서버에 연결할 수 없어요. 백엔드가 켜져 있는지 확인해 주세요."
-        : e instanceof Error
-          ? e.message
-          : "네트워크 오류";
-    throw new Error(msg);
+    throw toClientNetworkError(e, "목록 불러오기");
   }
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatHttpErrorBody(res.status, text));
   }
   return res.json() as Promise<DiaryListItem[]>;
 }
@@ -121,17 +200,11 @@ export async function fetchDiary(id: string, idToken: string | null): Promise<Di
       idToken,
     });
   } catch (e) {
-    const msg =
-      e instanceof TypeError && String(e.message).includes("fetch")
-        ? "서버에 연결할 수 없어요. 백엔드가 켜져 있는지 확인해 주세요."
-        : e instanceof Error
-          ? e.message
-          : "네트워크 오류";
-    throw new Error(msg);
+    throw toClientNetworkError(e, "일기 불러오기");
   }
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatHttpErrorBody(res.status, text));
   }
   return res.json() as Promise<DiaryDetail>;
 }
@@ -149,17 +222,11 @@ export async function submitDiary(
       idToken,
     });
   } catch (e) {
-    const msg =
-      e instanceof TypeError && String(e.message).includes("fetch")
-        ? "서버에 연결할 수 없어요. 백엔드(npm run start:dev in backend, 포트 4000)가 켜져 있는지 확인해 주세요."
-        : e instanceof Error
-          ? e.message
-          : "네트워크 오류";
-    throw new Error(msg);
+    throw toClientNetworkError(e, "일기 제출");
   }
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(text || `${res.status} ${res.statusText}`);
+    throw new Error(formatHttpErrorBody(res.status, text));
   }
   return res.json() as Promise<SubmitDiaryResponse>;
 }
