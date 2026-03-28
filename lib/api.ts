@@ -15,21 +15,29 @@ export type ApiFetchOptions = RequestInit & {
   idToken?: string | null;
 };
 
-function isLikelyNetworkFailure(e: unknown): boolean {
-  if (e instanceof TypeError) {
-    const m = String(e.message).toLowerCase();
-    return (
-      m.includes("fetch") ||
-      m.includes("network") ||
-      m.includes("load failed") ||
-      m.includes("failed to load") ||
-      m.includes("networkerror")
-    );
+function thrownMessage(e: unknown): string {
+  if (e instanceof Error) return e.message;
+  if (typeof e === "object" && e !== null && "message" in e) {
+    const m = (e as { message: unknown }).message;
+    return typeof m === "string" ? m : String(m);
   }
+  return String(e);
+}
+
+/** 브라우저·번들마다 fetch 실패가 TypeError가 아닐 때가 있어 메시지 문자열로도 판별 */
+function isLikelyNetworkFailure(e: unknown): boolean {
   if (e instanceof DOMException) {
     return e.name === "AbortError" || e.name === "NetworkError";
   }
-  return false;
+  const m = thrownMessage(e).toLowerCase();
+  return (
+    m.includes("failed to fetch") ||
+    m.includes("load failed") ||
+    m.includes("failed to load") ||
+    m.includes("networkerror") ||
+    m.includes("network request failed") ||
+    (e instanceof TypeError && (m.includes("fetch") || m.includes("network")))
+  );
 }
 
 /** Nest / 프록시 JSON·HTML 응답을 짧은 사용자용 문장으로 */
@@ -84,17 +92,22 @@ function formatHttpErrorBody(status: number, text: string): string {
   return `${label}: ${short}`;
 }
 
+const NETWORK_HINT =
+  "백엔드(Nest) 가동 여부, 인터넷·방화벽, 배포 프론트(Vercel·Render 등)의 BACKEND_URL·NEXT_PUBLIC_API_URL이 Nest 공개 주소를 가리키는지 확인해 주세요.";
+
 function toClientNetworkError(e: unknown, action: string): Error {
   if (e instanceof DOMException && e.name === "AbortError") {
     return new Error(`${action}: 요청이 중단되었어요.`);
   }
   if (isLikelyNetworkFailure(e)) {
-    const raw = e instanceof Error ? e.message : String(e);
-    return new Error(
-      `${action}: 서버까지 네트워크 요청이 실패했어요 (${raw}). 백엔드 가동 여부, 인터넷·방화벽, 배포 시 Vercel의 BACKEND_URL 또는 NEXT_PUBLIC_API_URL(Nest 공개 주소)을 확인해 주세요.`,
-    );
+    const raw = thrownMessage(e);
+    return new Error(`${action}: 서버까지 네트워크 요청이 실패했어요 (${raw}). ${NETWORK_HINT}`);
   }
   if (e instanceof Error) {
+    const raw = e.message.trim();
+    if (/failed to fetch|load failed|networkerror/i.test(raw)) {
+      return new Error(`${action}: 서버까지 네트워크 요청이 실패했어요 (${raw}). ${NETWORK_HINT}`);
+    }
     return new Error(`${action}: ${e.message}`);
   }
   return new Error(`${action}: ${String(e)}`);
