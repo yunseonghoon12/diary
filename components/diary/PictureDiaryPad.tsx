@@ -505,7 +505,10 @@ export function PictureDiaryPad({
       let picturePngBase64: string | null = null;
       const wrap = containerRef.current;
       const canvasEl = canvasRef.current;
-      if (wrap && canvasEl && showArtSurface) {
+      /** 사진 없이 그림도 없으면 전 화면 PNG를 만들지 않음(용량·Vercel 타임아웃 방지). 스트로크 1번이라도 끝내면 length>1 */
+      const hasCommittedDrawing = undoStack.current.length > 1;
+      const shouldExportImage = Boolean(photoUrl) || hasCommittedDrawing;
+      if (wrap && canvasEl && showArtSurface && shouldExportImage) {
         picturePngBase64 = await exportCompositePngBase64(wrap, canvasEl, photoUrl);
       }
       const res = await submitDiary(
